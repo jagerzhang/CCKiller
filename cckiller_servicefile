@@ -1,4 +1,6 @@
 #!/bin/bash
+# chkconfig: 35 10 90 
+# description: CCKiller Service
 EXEC_PATH=/usr/local/cckiller
 EXEC=cckiller
 DAEMON=$EXEC_PATH/$EXEC
@@ -18,7 +20,7 @@ stop()
        echo -n "Shutting down $EXEC ..."  
        ps aux | grep "$DAEMON" | grep -v grep | kill -9 `awk '{print $2}'` >/dev/null 2>&1  
        rm -f $PID_FILE
-       usleep 100  
+       sleep 0.5  
        echo -e "                 [ \033[36mOK\033[0m ]"   
 }
 
@@ -37,7 +39,7 @@ start()
     PID=$(ps aux | grep "$DAEMON" | grep -v grep | awk '{print $2}')
     if [[ ! -z $PID ]]
     then
-        usleep 100
+        sleep 0.5
         echo  $PID > $PID_FILE
         echo -e "                      [ \033[36mOK\033[0m ]"
     else
