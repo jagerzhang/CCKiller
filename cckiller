@@ -1,21 +1,21 @@
 #!/bin/sh
 ###################################################################
-#  CCKiller version 1.0.2 Author: Jager <ge@zhangge.net>          #
-#  For more information please visit https://zhangge.net/5066.html #
+#  CCKiller version 1.0.5 Author: Jager <ge@zhangge.net>          #
+#  For more information please visit https://zhangge.net/5066.html#
 #-----------------------------------------------------------------#
-#  Copyright ©2015 zhangge.net. All rights reserved.              #
+#  Copyright ©2015-2016 zhangge.net. All rights reserved.              #
 ###################################################################
 
 header()
 {
-        echo "CCKiller version 1.0.2 Author: Jager <ge@zhangge.net>"
-        echo "Copyright ©2015 zhangge.net. All rights reserved. "
+        echo "CCKiller version 1.0.5 Author: Jager <ge@zhangge.net>"
+        echo "Copyright ©2015-2016 zhangge.net. All rights reserved. "
 }
 
 load_conf()
 {
     CONF="/usr/local/cckiller/ck.conf"
-    if [ -f "$CONF" ] && [ ! "$CONF" == "" ]; then
+    if [[ -f "$CONF" ]]; then
         source $CONF
         if [[ ! -z $IGNORE_PORT ]]
         then
@@ -46,26 +46,27 @@ showhelp()
 
 banip()
 {
+    LOG_FILE=$LOGDIR/cckiller_$(date +%Y-%m-%d).log
     if [[ ! -z $1 ]]
     then
-        /etc/init.d/iptables status | grep $1 >/dev/null
+        $IPT -nvL | grep DROP | grep $1 >/dev/null
         if [[ 0 -ne $? ]]
         then
             $IPT -I INPUT -s $1 -j DROP && \
-                echo "$1 Was Baned successfully."
+                echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 Was Baned successfully." | tee -ai $LOG_FILE 
                 return 0
         else
-            echo "$1 is already in iptables list, please check..."
+            echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 is already in iptables list, please check..." | tee -ai $LOG_FILE
             return 1
         fi
     else
-        echo "Error: Not Found IP Address... Usage: cckiller -b IPaddress"
+        echo "[`date "+%Y-%m-%d %H:%M:%S"`]: Error: Not Found IP Address... Usage: cckiller -b IPaddress" | tee -ai $LOG_FILE
     fi
 }
 
 unbanip()
 {
-
+LOG_FILE=$LOGDIR/cckiller_$(date +%Y-%m-%d).log
 if [[ -z $1 ]]
 then
 UNBAN_SCRIPT=$(mktemp /tmp/unban.XXXXXXXX)
@@ -75,20 +76,20 @@ sleep $BAN_PERIOD
 while read line
 do
 	$IPT -D INPUT -s \$line -j DROP
-	#sed -i "/\$line/d" $IGNORE_IP_LIST
+	echo "[\`date "+%Y-%m-%d %H:%M:%S"\`]: \$line is Unbaned successfully." | tee -ai $LOG_FILE
 
 done < $BANNED_IP_LIST
 rm -f $BANNED_IP_LIST $BANNED_IP_MAIL $BAD_IP_LIST $UNBAN_SCRIPT
 EOF
 . $UNBAN_SCRIPT &
 else
-    /etc/init.d/iptables status | grep $1 >/dev/null
+    $IPT -nvL | grep DROP | grep $1 >/dev/null
     if [[ 0 -eq $? ]]
     then
         $IPT -D INPUT -s $1 -j DROP
-        echo "$1 is Unbaned successfully."
+        echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 is Unbaned successfully." | tee -ai $LOG_FILE
     else
-        echo "$1 is not found in iptables list, please check..."
+        echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 is not found in iptables list, please check..." | tee -ai $LOG_FILE
     fi
 fi
 }
@@ -97,13 +98,13 @@ check_ip()
 {
     
     #check_ip if in the $IGNORE_IP_LIST
-    grep $CURR_LINE_IP $IGNORE_IP_LIST >/dev/null && return 0
+    grep -q $CURR_LINE_IP $IGNORE_IP_LIST && return 0
     
     #check ip belongs to IP subnet
-    result=$(awk -F'[./]' -v ip=$1 '
+    result=$(grep '/' $IGNORE_IP_LIST | awk -F'[./]' -v ip=$1 '
     {for (i=1;i<=int($NF/8);i++){a=a$i"."}
     if (index(ip, a)==1){split( ip, A, ".");if (A[4]<2^(8-$NF%8)) print "hit"} 
-    a=""}' $IGNORE_IP_LIST )
+    a=""}' )
     
     if [[ "$result" = "hit" ]]
     then
@@ -138,7 +139,6 @@ cc_check()
     BANNED_IP_LIST=$($TMP_FILE)
     LOG_FILE=$LOGDIR/cckiller_$(date +%Y-%m-%d).log
     echo "Banned the following ip addresses on `date`" > $BANNED_IP_MAIL
-    /etc/init.d/iptables status >/dev/null || /etc/init.d/iptables start >/dev/null
     echo >>	$BANNED_IP_MAIL
     BAD_IP_LIST=$($TMP_FILE)
     show_stats | awk -v str=$NO_OF_CONNECTIONS '{if ($1>=str){print $0}}' > $BAD_IP_LIST
@@ -147,31 +147,25 @@ cc_check()
 		CURR_LINE_CONN=$(echo $line | cut -d" " -f1)
 		CURR_LINE_IP=$(echo $line | cut -d" " -f2)
 		
-# 		IGNORE_BAN=$(grep -c $CURR_LINE_IP $IGNORE_IP_LIST)
-
         check_ip $CURR_LINE_IP
         
         if [ $? -eq 0 ]; then
 			continue
  		fi
   		
-# 		grep $CURR_LINE_IP $IGNORE_IP_LIST >/dev/null && continue
-# 		if [ $IGNORE_BAN -ge 1 ]; then
-# 			continue
-# 		fi
-		IP_BAN_NOW=1
-		
 		banip $CURR_LINE_IP
+		
 		if [ $? -eq 1 ]; then
 			continue
+		else
+		    let IP_BAN_NOW+=1
 		fi
-		
 		echo "[`date "+%Y-%m-%d %H:%M:%S"`]: Banned $CURR_LINE_IP with $CURR_LINE_CONN connections" | tee -ai $LOG_FILE >> $BANNED_IP_MAIL
 		echo $CURR_LINE_IP >> $BANNED_IP_LIST
 		#echo $CURR_LINE_IP >> $IGNORE_IP_LIST
 
 	done < $BAD_IP_LIST
-	if [[ $IP_BAN_NOW -eq 1 ]]; then
+	if [[ $IP_BAN_NOW -ge 1 ]]; then
 		dt=$(date)
 		if [[ $EMAIL_TO != "" ]] && [[ $EMAIL_TO != "root@localhost" ]]; then
 			cat $BANNED_IP_MAIL | mailx -s "IP addresses banned on $dt" $EMAIL_TO
