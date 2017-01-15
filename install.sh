@@ -1,348 +1,234 @@
 #!/bin/sh
 ###################################################################
-#  CCKiller version 1.0.2 Author: Jager <ge@zhangge.net>          #
+#  CCKiller version 1.0.5 Author: Jager <ge@zhangge.net>          #
 #  For more information please visit https://zhangge.net/5066.html#
 #-----------------------------------------------------------------#
-#  Copyright ©2015 zhangge.net. All rights reserved.              #
+#  Copyright ©2015-2016 zhangge.net. All rights reserved.              #
 ###################################################################
-conf_env()
-{
-    export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-    export DKName=CCKiller
-    export Base_Dir=/usr/local/cckiller
-    export Version=1.0.2
-    clear
-}
-
-check_env()
-{
-    #wget -V || yum install -y wget
-    which sendmail || yum install -y sendmail
-    mailx -V || yum install -y mailx
-    
-}
 
 header()
 {
-printf "
-###################################################################
-#  $DKName version $DKVer Author: Jager <ge@zhangge.net>               #
-#  For more information please visit https://zhangge.net/5066.html#
-#-----------------------------------------------------------------#
-#  Copyright @2015 zhangge.net. All rights reserved.              #
-###################################################################
+        echo "CCKiller version 1.0.5 Author: Jager <ge@zhangge.net>"
+        echo "Copyright ©2015-2016 zhangge.net. All rights reserved. "
+}
 
-"
+load_conf()
+{
+    CONF="/usr/local/cckiller/ck.conf"
+    if [[ -f "$CONF" ]]; then
+        source $CONF
+        if [[ ! -z $IGNORE_PORT ]]
+        then
+            IGNORE_PORT=\:\($(echo $IGNORE_PORT|tr ',' '|')\)\|
+        fi
+    else
+        header
+        echo "$CONF not found."
+        exit 1
+    fi
 }
 
 showhelp()
 {
-    conf_env
 	header
-	echo 'Usage: configure.sh [OPTIONS]'
+	echo
+	echo 'Usage: cckiller [OPTIONS] [N]'
+	echo 'N : number of tcp/udp	connections (default 100)'
 	echo
 	echo 'OPTIONS:'
-	echo "-h | --help : Show help of $DKName"
-	echo "-u | --update : update Check for $DKName"
-	echo "-c | --config : Edit The configure of $DKName again"
-	echo "-i | --install : install $DKName version $DKVer to This System"
-	echo "-U | --uninstall : Uninstall cckiller from This System"
+	echo "-h | --help: Show	this help screen"
+	echo "-k | --kill: Block the offending ip making more than N connections"
+	echo '-s | --show: Show The TOP "N" Connections of System Current'
+	echo "-b | --banip: Ban The IP or IP subnet like cckiller -b 192.168.1.1"
+	echo "-u | --unban: Unban The IP or IP subnet which is in the BlackList of iptables"
 	echo
 }
 
-get_char()
+banip()
 {
-    SAVEDSTTY=`stty -g`
-    stty -echo
-    stty cbreak
-    dd if=/dev/tty bs=1 count=1 2> /dev/null
-    stty -raw
-    stty echo
-    stty $SAVEDSTTY
-}
-
-Check_U()
-{
-    userid=$(id | awk '{print $1}' | sed -e 's/=/ /' -e 's/(/ /' -e 's/)/ /'|awk '{print $2}')
-    if [[ $userid -ne 0 ]]
+    LOG_FILE=$LOGDIR/cckiller_$(date +%Y-%m-%d).log
+    if [[ ! -z $1 ]]
     then
-        echo "No root permissions,Please run with root user..."
-        exit
-    fi
-}
-
-Wget()
-{
-    wget --no-check-certificate -q -O $1 $2
-}
-
-Update()
-{
-    conf_env
-    Wget $Base_Dir/version.txt https://zhangge.net/wp-content/uploads/files/cckiller/version.txt
-    Configure=$(awk -F":" '/configure/ {print $2}' $Base_Dir/version.txt)
-    
-    FINAL_VER=$(awk -F":" '/version/ {print $2}' $Base_Dir/version.txt)
-    
-    if [[ -f $Base_Dir/ck.conf ]]
-    then
-        source $Base_Dir/ck.conf
-    else
-        echo "Error: Not Found $Base_Dir/ck.conf, Please install CCkiller Again."
-        exit 1
-    fi
-    
-    if [[ $DKVer != $FINAL_VER ]]
-    then
-        echo =============================================================================
-        echo "Local Version: $DKVer"
-        echo
-        echo "Remote information:"
-        echo
-        cat $Base_Dir/version.txt
-        echo
-        echo =============================================================================
-        read -p "New Version Found, Do You Want Update Now? (y/n, default y): " CHOICE
-        if [[ $CHOICE == 'y' ]] || [[ $CHOICE == 'Y' ]] || [[ $CHOICE == "" ]]
+        $IPT -nvL | grep DROP | grep $1 >/dev/null
+        if [[ 0 -ne $? ]]
         then
-            clear
-            Version=$FINAL_VER
-            install update
+            $IPT -I INPUT -s $1 -j DROP && \
+                echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 Was Baned successfully." | tee -ai $LOG_FILE 
+                return 0
         else
-            echo "It‘s Skiped."
+            echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 is already in iptables list, please check..." | tee -ai $LOG_FILE
+            return 1
         fi
     else
-        echo "Good, Already have the latest versions."
+        echo "[`date "+%Y-%m-%d %H:%M:%S"`]: Error: Not Found IP Address... Usage: cckiller -b IPaddress" | tee -ai $LOG_FILE
     fi
 }
 
-Configure()
+unbanip()
 {
-    if [[ "$1" == "config" ]] && [[ ! -d "$Base_Dir" ]]
-    then
-	    echo; echo; echo "Warn: CCkiller not found, Please used -i install first"
-	    echo
-	    exit 0
-    fi
-    if [[ "$1" == "default" ]]
-    then
-        SLEEP_TIME=20
-        BAN_PERIOD=600
-        EMAIL_TO=root@localhost
-        NO_OF_CONNECTIONS=100
-        IGNORE_PORT=
-        echo
-        echo "You choice the default configuration:"
-        echo 'Configure info,Please Review:'
-        echo "======================================="
-	    echo "  The Time interval : $SLEEP_TIME s"
-	    echo
-	    echo "  The Forbidden Time: $BAN_PERIOD s"
-	    echo
-	    echo "  Adminstrator Email: $EMAIL_TO"
-	    echo
-        echo "  Connections  Allow: $NO_OF_CONNECTIONS"
-        echo 
-        echo "  Ignore Port: Null                    "
-        echo "========================================"
-        echo "Press any key to continue..."
-    else
-        echo
-        read -p "Please Input The Time interval of CCkiller Check(default: 20s): " SLEEP_TIME
-        if [[ -z $SLEEP_TIME ]];then
-            echo "The Time interval of CCkiller Check will set default 20s"
-            SLEEP_TIME=20
-        fi
-        echo
-        read -p "Please Input the Forbidden Time of banned IP(default: 600s): " BAN_PERIOD
-        if [[ -z $BAN_PERIOD ]];then
-    	    echo "The Forbidden Time will set default 600s"
-    	    BAN_PERIOD=600
-        fi
-        echo
-        read -p "Please Input the E-mail of Adminstrator(default: root@localhost): " EMAIL_TO
-        if [[ -z $EMAIL_TO ]];then
-    	    echo "The Adminstrator E-mail will set default root@localhost"
-    	    EMAIL_TO=root@localhost
-        fi
-        echo
-        read -p "Please Input the Maximum number of connections allowed(default 100): " NO_OF_CONNECTIONS
-        if [[ -z $NO_OF_CONNECTIONS ]];then
-        	echo "The Max number for connections Allowed will set default 100"
-        	NO_OF_CONNECTIONS=100
-        fi
-        echo
-        read -p "Please Input the ignore Ports of check like 21,8080,1080(default null): " IGNORE_PORT
-        if [[ -z $IGNORE_PORT ]];then
-        	echo "The ignore Ports of check will set default null"
-        	IGNORE_PORT=
-        fi
-        clear
-        echo
-        echo 'Configure info,Please Review:'
-        echo "======================================="
-    	echo "  The Time interval : $SLEEP_TIME s"
-    	echo
-    	echo "  The Forbidden Time: $BAN_PERIOD s"
-    	echo
-    	echo "  Adminstrator Email: $EMAIL_TO"
-    	echo
-        echo "  Connections  Allow: $NO_OF_CONNECTIONS"
-        echo 
-        echo "  Ignore Port: $IGNORE_PORT"
-        echo "========================================"
-        echo "Press any key to continue..."
-    fi
-    char=`get_char`
-    mkdir -p $Base_Dir/log
+LOG_FILE=$LOGDIR/cckiller_$(date +%Y-%m-%d).log
+if [[ -z $1 ]]
+then
+UNBAN_SCRIPT=$(mktemp /tmp/unban.XXXXXXXX)
+cat << EOF >$UNBAN_SCRIPT
+#!/bin/sh
+sleep $BAN_PERIOD
+while read line
+do
+	$IPT -D INPUT -s \$line -j DROP
+	echo "[\`date "+%Y-%m-%d %H:%M:%S"\`]: \$line is Unbaned successfully." | tee -ai $LOG_FILE
 
-cat << EOF >$Base_Dir/ck.conf
-##### Paths of the script and other files
-PROGDIR="$Base_Dir"
-LOGDIR="$Base_Dir/log"
-PROG="$Base_Dir/cckiller"
-IGNORE_IP_LIST="$Base_Dir/ignore.ip.list"
-IPT="/sbin/iptables"
-DKName=$DKName
-DKVer=$Version
-
-##### SLEEP_TIMEuency in minutes for running the script in proccess mode(default 20s)
-SLEEP_TIME=$SLEEP_TIME
-
-##### How many connections define a bad IP? Indicate that below.
-NO_OF_CONNECTIONS=$NO_OF_CONNECTIONS
-
-##### An email is sent to the following address when an IP is banned.
-EMAIL_TO="$EMAIL_TO"
-
-#####  The Forbidden seconds of banned IP(default:600s).
-BAN_PERIOD=$BAN_PERIOD
-
-##### The ignore Ports like 21,2121,8000 (default null)
-IGNORE_PORT=$IGNORE_PORT
+done < $BANNED_IP_LIST
+rm -f $BANNED_IP_LIST $BANNED_IP_MAIL $BAD_IP_LIST $UNBAN_SCRIPT
 EOF
-    echo
-    test -f /etc/init.d/cckiller && /etc/init.d/cckiller restart
-    echo
-    echo "Configure Completed."
-}
-
-install()
-{
-    if [[ -d "$Base_Dir" ]] && [[ -z $1 ]]; then
-	    echo; echo; echo "Warn: cckiller is already installed, Please used -U uninstall first"
-	    echo
-	    exit 0
-    fi
-    read -p 'Do you want to use the default configuration? (y/n): ' CHOICE
-    if [[ $CHOICE == "n" ]]
+. $UNBAN_SCRIPT &
+else
+    $IPT -nvL | grep DROP | grep $1 >/dev/null
+    if [[ 0 -eq $? ]]
     then
-        Configure
+        $IPT -D INPUT -s $1 -j DROP
+        echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 is Unbaned successfully." | tee -ai $LOG_FILE
     else
-        Configure default
+        echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 is not found in iptables list, please check..." | tee -ai $LOG_FILE
     fi
-    clear
-    echo; echo "Installing $DKName version $DKVer by zhangge.net"; echo
-    echo; echo -n 'Downloading source files...'
-    check_env >/dev/null 2>&1
-    echo -n '.'
-    Wget $Base_Dir/cckiller https://zhangge.net/wp-content/uploads/files/cckiller/cckiller.sh?ver=$(date +%M|md5sum|awk '{print $1}')
-    
-    test -d /etc/init.d || mkdir -p /etc/init.d
-    Wget /etc/init.d/cckiller https://zhangge.net/wp-content/uploads/files/cckiller/cckiller_service.sh?ver=$(date +%M|md5sum|awk '{print $1}')
-    chmod 0755 $Base_Dir/cckiller
-    
-    chmod 0755 /etc/init.d/cckiller
-    
-    test -f /etc/rc.d/rc.local && echo "/etc/init.d/cckiller start" >>/etc/rc.d/rc.local
-        
-    ln -sf $Base_Dir/cckiller /bin/cckiller
-    
-    cp -f $0 $Base_Dir/
-    
-    #ifconfig |awk -F '[ :]+' '/inet addr/{print $4}' > /usr/local/cckiller/ignore.ip.list
-    if [[ -z $1 ]]
-    then
-        ip addr | awk -F '[ /]+' '/inet / {print $3}' | grep -v '127.0.' > /usr/local/cckiller/ignore.ip.list
-    fi
-    echo "...done"
-    echo
-    echo
-    if [[ -z $1 ]]
-    then
-        /etc/init.d/cckiller start
-        echo "Installation has completed."
-        echo
-        echo "Config file is at $Base_Dir/ck.conf"
-    else
-        /etc/init.d/cckiller restart
-        echo "Update success."
-    fi
-    
-    echo
-    echo 'Your can post comments or suggestions on https://zhangge.net/5066.html'
-    echo
-}
-
-function uninstall()
-{
-    echo "Uninstalling cckiller..."
-    echo;
-    test -f /etc/init.d/cckiller && /etc/init.d/cckiller stop
-    echo; echo; echo -n "Deleting script files....."
-    if [ -e "$Base_Dir/cckiller" ]; then
-        rm -f $Base_Dir/cckiller
-        echo -n ".."
-    fi
-    if [ -d "$Base_Dir" ]; then
-        rm -rf $Base_Dir
-        echo -n ".."
-    fi
-    echo "done"
-    echo; echo -n "Deleting system service....."
-    if [ -e '/etc/init.d/cckiller' ]; then
-        rm -f /etc/init.d/cckiller
-        echo -n ".."
-    fi
-    echo "done"
-    echo; echo "Uninstall Complete"; echo
-}
-
-conf_env
-
-if [[ -z $1 ]];then
-    showhelp
-    exit
 fi
+}
 
-header
-Check_U
+check_ip()
+{
+    
+    #check_ip if in the $IGNORE_IP_LIST
+    grep -q $CURR_LINE_IP $IGNORE_IP_LIST && return 0
+    
+    #check ip belongs to IP subnet
+    result=$(grep '/' $IGNORE_IP_LIST | awk -F'[./]' -v ip=$1 '
+    {for (i=1;i<=int($NF/8);i++){a=a$i"."}
+    if (index(ip, a)==1){split( ip, A, ".");if (A[4]<2^(8-$NF%8)) print "hit"} 
+    a=""}' )
+    
+    if [[ "$result" = "hit" ]]
+    then
+        return 0
+    else
+        return 1
+    fi
+    
+}
+
+show_stats()
+{
+	if [[ ! -z $1 ]] && [[ ! -z $2 ]]
+	then
+		netstat -ntu | \
+        egrep -v "${IGNORE_PORT}LISTEN|127.0.0.1" | \
+        awk -F"[ ]+|[:]" '{print $6}' | \
+        sed -n '/[0-9]/p' | sort | uniq -c | sort -rn | head -$2
+	else
+		netstat -ntu | \
+        egrep -v "${IGNORE_PORT}LISTEN|127.0.0.1" | \
+        awk -F"[ ]+|[:]" '{print $6}' | \
+        sed -n '/[0-9]/p' | sort | uniq -c | sort -rn
+	fi
+}
+
+cc_check()
+{
+    TMP_PREFIX='/tmp/cckiller'
+    TMP_FILE="mktemp $TMP_PREFIX.XXXXXXXX"
+    BANNED_IP_MAIL=$($TMP_FILE)
+    BANNED_IP_LIST=$($TMP_FILE)
+    LOG_FILE=$LOGDIR/cckiller_$(date +%Y-%m-%d).log
+    echo "Banned the following ip addresses on `date`" > $BANNED_IP_MAIL
+    echo >>	$BANNED_IP_MAIL
+    BAD_IP_LIST=$($TMP_FILE)
+    show_stats | awk -v str=$NO_OF_CONNECTIONS '{if ($1>=str){print $0}}' > $BAD_IP_LIST
+	IP_BAN_NOW=0
+	while read line; do
+		CURR_LINE_CONN=$(echo $line | cut -d" " -f1)
+		CURR_LINE_IP=$(echo $line | cut -d" " -f2)
+		
+        check_ip $CURR_LINE_IP
+        
+        if [ $? -eq 0 ]; then
+			continue
+ 		fi
+  		
+		banip $CURR_LINE_IP
+		
+		if [ $? -eq 1 ]; then
+			continue
+		else
+		    let IP_BAN_NOW+=1
+		fi
+		echo "[`date "+%Y-%m-%d %H:%M:%S"`]: Banned $CURR_LINE_IP with $CURR_LINE_CONN connections" | tee -ai $LOG_FILE >> $BANNED_IP_MAIL
+		echo $CURR_LINE_IP >> $BANNED_IP_LIST
+		#echo $CURR_LINE_IP >> $IGNORE_IP_LIST
+
+	done < $BAD_IP_LIST
+	if [[ $IP_BAN_NOW -ge 1 ]]; then
+		dt=$(date)
+		if [[ $EMAIL_TO != "" ]] && [[ $EMAIL_TO != "root@localhost" ]]; then
+			cat $BANNED_IP_MAIL | mailx -s "IP addresses banned on $dt" $EMAIL_TO
+		fi
+		unbanip
+	else
+		rm -f $BANNED_IP_LIST $BANNED_IP_MAIL $BAD_IP_LIST 
+	fi
+}
+
+process_mode()
+{
+    while true
+    do
+        cc_check
+        sleep $1
+    done
+}
+
+#kill now
+check_now()
+{
+    if [[ ! -z $1 ]]
+    then
+        NO_OF_CONNECTIONS=$1
+    fi
+    cc_check
+}
+
+load_conf
 while [ $1 ]; do
 	case $1 in
 		'-h' | '--help' | '?' )
 			showhelp
 			exit
 			;;
-		'--install' | '-i' )
-			install
-			exit
+		'--kill' | '-k' )
+			check_now $2
 			;;
-		'--uninstall' | '-U' )
-			uninstall
-			exit
+		'--show' | '-s')
+		    show_stats show $2
+		    break;
+		    ;;
+		 '--banip' | '-b' )
+		    banip $2
+		    break
+			;;   
+		 '--unban' | '-u' )
+		    unbanip $2
+		    break
+			;;	
+		 '--process' | '-p' )
+		    process_mode $SLEEP_TIME
+		    break
 			;;
-		'--update' | '-u' )
-			Update
-			exit
-			;;	
-		'--config' | '-c' )
-			Configure config
-			exit
-			;;	
+		*[0-9]* )
+			check_now $1
+			;;
 		* )
-			showhelp
-			exit
+		    showhelp
+		    exit
 			;;
 	esac
 	shift
 done
+[[ -z $1 ]] && show_stats
