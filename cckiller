@@ -170,7 +170,9 @@ cc_check()
 		if [[ $EMAIL_TO != "" ]] && [[ $EMAIL_TO != "root@localhost" ]]; then
 			cat $BANNED_IP_MAIL | mailx -s "IP addresses banned on $dt" $EMAIL_TO
 		fi
-		unbanip
+		if [[ $BAN_PERIOD -gt 0 ]];then
+		    unbanip
+		fi
 	else
 		rm -f $BANNED_IP_LIST $BANNED_IP_MAIL $BAD_IP_LIST 
 	fi
