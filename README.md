@@ -6,12 +6,14 @@ wget --no-check-certificate -O install.sh https://zhangge.net/wp-content/uploads
 
 
 2015-09-23 Ver 1.0.1：
+
 支持白名单为IP段，格式为IP段通用格式，比如 192.168.1.0/24；
 新增拉黑改为判断 iptables 是否已存在操作IP的判断方式；
 增加日志记录功能，每天一个日志文件，位于安装目录下的log文件内；
 集成手动拉黑IP和解封IP功能，使用cckiller -b IP 拉黑，使用 cckiller -u IP 解封。
 
 2015-11-29 Ver 1.0.2：
+
 新增在线更新功能，执行 ./install.sh -u 即可检测是否有新版本：CCKiller：Linux轻量级CC攻击防御工具，秒级检查、自动拉黑和释放
 如果发现有新版本则显示更新内容，并提示是否执行更新。选择之后将会更新到新版本，需要重新配置，但是IP或端口白名单会保持不变。
 新增端口白名单功能
@@ -22,6 +24,7 @@ wget --no-check-certificate -O install.sh https://zhangge.net/wp-content/uploads
 更新难免存在不可意料的纰漏，使用中存在任何问题请留言告知，谢谢！
 
 2016-06-20 Ver 1.0.3：
+
 增加“永久”拉黑时长
 有网友反馈，需要设置更长的拉黑时间。原先的机制来看，如果设置拉黑时间过长，那么可能会产生很多后台释放黑名单脚本，占用系统资源。
 因此，1.0.3版本加入永久拉黑设置。只要在安装的时候，设置拉黑时长为0，则CCKiller不会再产生后台释放脚本，也不会释放已拉黑的IP了：CCKiller：Linux轻量级CC攻击防御工具，秒级检查、自动拉黑和释放
@@ -34,5 +37,6 @@ wget --no-check-certificate -O install.sh https://zhangge.net/wp-content/uploads
 Ps：以上功能如果你觉得有用，可以执行 install.sh -u 进行在线更新，记得是小写u哦。
 
 2016-10-09 Ver 1.0.4：
+
 BUG修复
 根据网友反馈，发现攻防测试中一个IP不能被拉黑，经过分析发现命中了白名单。而实际上白名单中并没有IP段，只因IP同属于一个网段。因此，在是否属于IP段的判断中，加入对斜杠的筛选，也就是说只判断白名单中存在斜杠(/)的条目，简单粗暴！
