@@ -1,16 +1,16 @@
 #!/bin/sh
 ###################################################################
-#  CCKiller version 1.0.5 Author: Jager <ge@zhangge.net>          #
+#  CCKiller version 1.0.7 Author: Jager <ge@zhangge.net>          #
 #  For more information please visit https://zhangge.net/5066.html#
 #-----------------------------------------------------------------#
-#  Copyright ©2015-2016 zhangge.net. All rights reserved.              #
+#  Copyright ©2015-2017 zhangge.net. All rights reserved.              #
 ###################################################################
 conf_env()
 {
     export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
     export DKName=CCKiller
     export Base_Dir=/usr/local/cckiller
-    export DKVer=1.0.5
+    export DKVer=1.0.7
     clear
 }
 
@@ -142,6 +142,7 @@ Configure()
         EMAIL_TO=root@localhost
         NO_OF_CONNECTIONS=100
         IGNORE_PORT=
+        LOG_LEVEL=INFO
         echo
         echo "You choice the default configuration:"
         echo 'Configure info,Please Review:'
@@ -154,7 +155,9 @@ Configure()
 	    echo
         echo "  Connections  Allow: $NO_OF_CONNECTIONS"
         echo 
-        echo "  Ignore Port: Null                    "
+        echo "  Ignore Port: Null                     "
+        echo
+        echo "  Log   Level:        $LOG_LEVEL        "
         echo "========================================"
         echo "Press any key to continue..."
     else
@@ -188,6 +191,12 @@ Configure()
         	echo "The ignore Ports of check will set default null"
         	IGNORE_PORT=
         fi
+        echo
+        read -p "Please Input the level of log like INFO,DEBUG,WARNING,OFF (default INFO): " LOG_LEVEL
+        if [[ -z LOG_LEVEL ]];then
+        	echo "The ignore Ports of check will set default INFO"
+        	LOG_LEVEL=INFO
+        fi
         clear
         echo
         echo 'Configure info,Please Review:'
@@ -201,6 +210,8 @@ Configure()
         echo "  Connections  Allow: $NO_OF_CONNECTIONS"
         echo 
         echo "  Ignore Port: $IGNORE_PORT"
+        echo
+        echo "  Log Level  : $LOG_LEVEL"
         echo "========================================"
         echo "Press any key to continue..."
     fi
@@ -232,6 +243,9 @@ BAN_PERIOD=$BAN_PERIOD
 
 ##### The ignore Ports like 21,2121,8000 (default null)
 IGNORE_PORT=$IGNORE_PORT
+
+##### The level of log like INFO,DEBUG,WARNING,OFF (default INFO)
+LOG_LEVEL=$LOG_LEVEL
 EOF
     echo
     test -f /etc/init.d/cckiller && /etc/init.d/cckiller restart
@@ -277,7 +291,7 @@ install()
         
     ln -sf $Base_Dir/cckiller /bin/cckiller
     
-    cp -f $0 $Base_Dir/
+    cp -f $0 $Base_Dir/ >/dev/null 2>&1
     
     #ifconfig |awk -F '[ :]+' '/inet addr/{print $4}' > /usr/local/cckiller/ignore.ip.list
     if [[ -z $1 ]]
@@ -290,11 +304,13 @@ install()
     if [[ -z $1 ]]
     then
         /etc/init.d/cckiller start
+        echo
         echo "Installation has completed."
         echo
         echo "Config file is at $Base_Dir/ck.conf"
     else
         /etc/init.d/cckiller restart
+        echo
         echo "Update success."
     fi
     
