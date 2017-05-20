@@ -1,15 +1,15 @@
 #!/bin/sh
 ###################################################################
-#  CCKiller version 1.0.5 Author: Jager <ge@zhangge.net>          #
+#  CCKiller version 1.0.7 Author: Jager <ge@zhangge.net>          #
 #  For more information please visit https://zhangge.net/5066.html#
 #-----------------------------------------------------------------#
-#  Copyright ©2015-2016 zhangge.net. All rights reserved.              #
+#  Copyright ©2015-2017 zhangge.net. All rights reserved.              #
 ###################################################################
 
 header()
 {
-        echo "CCKiller version 1.0.5 Author: Jager <ge@zhangge.net>"
-        echo "Copyright ©2015-2016 zhangge.net. All rights reserved. "
+        echo "CCKiller version 1.0.7 Author: Jager <ge@zhangge.net>"
+        echo "Copyright ©2015-2017 zhangge.net. All rights reserved. "
 }
 
 load_conf()
@@ -26,6 +26,30 @@ load_conf()
         echo "$CONF not found."
         exit 1
     fi
+}
+
+#write_log INFO "Messages" 
+write_log()
+{
+    LOG_FILE=$LOGDIR/cckiller_$(date +%Y-%m-%d).log
+    
+    logout=""
+    for((i=2;i<=$#;i++)); do 
+        j=${!i}
+        logout="${logout} $j "
+    done
+    
+    if [[ $LOG_LEVEL == "INFO" ]] && [[ "$1" == "INFO" ]];then
+        echo "[`date "+%Y-%m-%d %H:%M:%S"`][$1]: ${logout}" | tee -ai $LOG_FILE 
+    
+    elif [[ $LOG_LEVEL == "DEBUG" ]]
+        echo "[`date "+%Y-%m-%d %H:%M:%S"`][$1]: ${logout}" | tee -ai $LOG_FILE 
+    
+    else
+        echo "[`date "+%Y-%m-%d %H:%M:%S"`][$1]: ${logout}"
+    
+    fi
+    
 }
 
 showhelp()
@@ -53,14 +77,16 @@ banip()
         if [[ 0 -ne $? ]]
         then
             $IPT -I INPUT -s $1 -j DROP && \
-                echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 Was Baned successfully." | tee -ai $LOG_FILE 
+                #echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 Was Baned successfully." | tee -ai $LOG_FILE 
+                write_log INFO "$1 Was Baned successfully." 
                 return 0
         else
-            echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 is already in iptables list, please check..." | tee -ai $LOG_FILE
+            
+            write_log DEBUG "$1 is already in iptables list, please check..."
             return 1
         fi
     else
-        echo "[`date "+%Y-%m-%d %H:%M:%S"`]: Error: Not Found IP Address... Usage: cckiller -b IPaddress" | tee -ai $LOG_FILE
+         write_log DEBUG "Error: Not Found IP Address... Usage: cckiller -b IPaddress"
     fi
 }
 
@@ -76,8 +102,11 @@ sleep $BAN_PERIOD
 while read line
 do
 	$IPT -D INPUT -s \$line -j DROP
-	echo "[\`date "+%Y-%m-%d %H:%M:%S"\`]: \$line is Unbaned successfully." | tee -ai $LOG_FILE
-
+	if [[ "$LOG_LEVEL" != "OFF" ]];then
+	    echo "[\`date "+%Y-%m-%d %H:%M:%S"\`][INFO]: \$line is Unbaned successfully." | tee -ai $LOG_FILE
+	else
+	    echo "[\`date "+%Y-%m-%d %H:%M:%S"\`][INFO]: \$line is Unbaned successfully."
+	fi
 done < $BANNED_IP_LIST
 rm -f $BANNED_IP_LIST $BANNED_IP_MAIL $BAD_IP_LIST $UNBAN_SCRIPT
 EOF
@@ -87,9 +116,9 @@ else
     if [[ 0 -eq $? ]]
     then
         $IPT -D INPUT -s $1 -j DROP
-        echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 is Unbaned successfully." | tee -ai $LOG_FILE
+        write_log INFO "$1 is Unbaned successfully."
     else
-        echo "[`date "+%Y-%m-%d %H:%M:%S"`]: $1 is not found in iptables list, please check..." | tee -ai $LOG_FILE
+        write_log DEBUG "$1 is not found in iptables list, please check..."
     fi
 fi
 }
@@ -160,7 +189,7 @@ cc_check()
 		else
 		    let IP_BAN_NOW+=1
 		fi
-		echo "[`date "+%Y-%m-%d %H:%M:%S"`]: Banned $CURR_LINE_IP with $CURR_LINE_CONN connections" | tee -ai $LOG_FILE >> $BANNED_IP_MAIL
+		write_log INFO "Banned $CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
 		echo $CURR_LINE_IP >> $BANNED_IP_LIST
 		#echo $CURR_LINE_IP >> $IGNORE_IP_LIST
 
