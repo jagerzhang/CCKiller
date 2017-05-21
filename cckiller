@@ -42,7 +42,7 @@ write_log()
     if [[ $LOG_LEVEL == "INFO" ]] && [[ "$1" == "INFO" ]];then
         echo "[`date "+%Y-%m-%d %H:%M:%S"`][$1]: ${logout}" | tee -ai $LOG_FILE 
     
-    elif [[ $LOG_LEVEL == "DEBUG" ]]
+    elif [[ $LOG_LEVEL == "DEBUG" ]];then
         echo "[`date "+%Y-%m-%d %H:%M:%S"`][$1]: ${logout}" | tee -ai $LOG_FILE 
     
     else
