@@ -73,7 +73,7 @@ get_char()
 
 Check_U()
 {
-    userid=$(id | awk '{print $1}' | sed -e 's/=/ /' -e 's/(/ /' -e 's/)/ /'|awk '{print $2}')
+    userid=$(id | awk -F "[=|(]" '{print $2}')
     if [[ $userid -ne 0 ]]
     then
         echo "No root permissions,Please run with root user..."
