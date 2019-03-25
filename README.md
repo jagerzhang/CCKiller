@@ -4,7 +4,7 @@ Linux attack defense scripts tool --- Linux CC攻击防御工具脚本
 1. 请执行如下命令在线安装：
 
 ```
-curl -ko install.sh https://zhangge.net/wp-content/uploads/files/cckiller/install.sh?ver=1.0.7 && sh install.sh -i
+curl -ko install.sh https://zhang.ge/wp-content/uploads/files/cckiller/install.sh?ver=1.0.7 && sh install.sh -i
 ```
 
 2015-09-23 Ver 1.0.1：
