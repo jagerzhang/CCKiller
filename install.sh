@@ -81,16 +81,10 @@ Check_U()
     fi
 }
 
-Wget()
-{
-    wgetBin=$(which wget)
-    $wgetBin --no-check-certificate -q -O $1 $2
-}
-
 Update()
 {
     conf_env
-    Wget $Base_Dir/log/version.txt https://zhang.ge/wp-content/uploads/files/cckiller/version.txt
+    curl -ko $Base_Dir/log/version.txt https://zhang.ge/wp-content/uploads/files/cckiller/version.txt
     CONF_FILE=$(awk -F":" '/configure/ {print $2}' $Base_Dir/log/version.txt)
     
     FINAL_VER=$(awk -F":" '/version/ {print $2}' $Base_Dir/log/version.txt)
@@ -275,10 +269,10 @@ install()
     echo; echo -n 'Downloading source files...'
     check_env >/dev/null 2>&1
     echo -n '.'
-    Wget $Base_Dir/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller.sh?ver=$(date +%M|md5sum|awk '{print $1}')
+    curl -ko $Base_Dir/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller.sh?ver=$(date +%M|md5sum|awk '{print $1}')
     
     test -d /etc/init.d || mkdir -p /etc/init.d
-    Wget /etc/init.d/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller_service.sh?ver=$(date +%M|md5sum|awk '{print $1}')
+    curl -ko /etc/init.d/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller_service.sh?ver=$(date +%M|md5sum|awk '{print $1}')
     chmod 0755 $Base_Dir/cckiller
     
     chmod 0755 /etc/init.d/cckiller
