@@ -1,7 +1,7 @@
 #!/bin/sh
 ###################################################################
-#  CCKiller version 1.0.7 Author: Jager <ge@zhangge.net>          #
-#  For more information please visit https://zhangge.net/5066.html#
+#  CCKiller version 1.0.7 Author: Jager <im@zhang.ge>          #
+#  For more information please visit https://zhang.ge/5066.html#
 #-----------------------------------------------------------------#
 #  Copyright ©2015-2017 zhangge.net. All rights reserved.              #
 ###################################################################
@@ -36,10 +36,10 @@ header()
 {
 printf "
 ###################################################################
-#  $DKName version $DKVer Author: Jager <ge@zhangge.net>               #
-#  For more information please visit https://zhangge.net/5066.html#
+#  $DKName version $DKVer Author: Jager <im@zhang.ge>               #
+#  For more information please visit https://zhang.ge/5066.html#
 #-----------------------------------------------------------------#
-#  Copyright @2015-2016 zhangge.net. All rights reserved.              #
+#  Copyright @2015-2016 zhang.ge. All rights reserved.              #
 ###################################################################
 
 "
@@ -90,7 +90,7 @@ Wget()
 Update()
 {
     conf_env
-    Wget $Base_Dir/log/version.txt https://zhangge.net/wp-content/uploads/files/cckiller/version.txt
+    Wget $Base_Dir/log/version.txt https://zhang.ge/wp-content/uploads/files/cckiller/version.txt
     CONF_FILE=$(awk -F":" '/configure/ {print $2}' $Base_Dir/log/version.txt)
     
     FINAL_VER=$(awk -F":" '/version/ {print $2}' $Base_Dir/log/version.txt)
@@ -275,10 +275,10 @@ install()
     echo; echo -n 'Downloading source files...'
     check_env >/dev/null 2>&1
     echo -n '.'
-    Wget $Base_Dir/cckiller https://zhangge.net/wp-content/uploads/files/cckiller/cckiller.sh?ver=$(date +%M|md5sum|awk '{print $1}')
+    Wget $Base_Dir/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller.sh?ver=$(date +%M|md5sum|awk '{print $1}')
     
     test -d /etc/init.d || mkdir -p /etc/init.d
-    Wget /etc/init.d/cckiller https://zhangge.net/wp-content/uploads/files/cckiller/cckiller_service.sh?ver=$(date +%M|md5sum|awk '{print $1}')
+    Wget /etc/init.d/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller_service.sh?ver=$(date +%M|md5sum|awk '{print $1}')
     chmod 0755 $Base_Dir/cckiller
     
     chmod 0755 /etc/init.d/cckiller
@@ -315,7 +315,7 @@ install()
     fi
     
     echo
-    echo 'Your can post comments or suggestions on https://zhangge.net/5066.html'
+    echo 'Your can post comments or suggestions on https://zhang.ge/5066.html'
     echo
 }
 
