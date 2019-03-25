@@ -1,14 +1,14 @@
 #!/bin/sh
 ###################################################################
-#  CCKiller version 1.0.7 Author: Jager <ge@zhangge.net>          #
-#  For more information please visit https://zhangge.net/5066.html#
+#  CCKiller version 1.0.7 Author: Jager <im@zhang.ge>          #
+#  For more information please visit https://zhang.ge/5066.html#
 #-----------------------------------------------------------------#
-#  Copyright ©2015-2017 zhangge.net. All rights reserved.              #
+#  Copyright ©2015-2017 zhang.ge. All rights reserved.              #
 ###################################################################
 
 header()
 {
-        echo "CCKiller version 1.0.7 Author: Jager <ge@zhangge.net>"
+        echo "CCKiller version 1.0.7 Author: Jager <im@zhang.ge>"
         echo "Copyright ©2015-2017 zhangge.net. All rights reserved. "
 }
 
