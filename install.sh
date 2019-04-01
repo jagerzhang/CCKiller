@@ -269,10 +269,10 @@ install()
     echo; echo -n 'Downloading source files...'
     check_env >/dev/null 2>&1
     echo -n '.'
-    curl -ko $Base_Dir/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller.sh?ver=$(date +%M|md5sum|awk '{print $1}')
+    curl -ko $Base_Dir/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller.sh?ver=1.0.7
     
     test -d /etc/init.d || mkdir -p /etc/init.d
-    curl -ko /etc/init.d/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller_service.sh?ver=$(date +%M|md5sum|awk '{print $1}')
+    curl -ko /etc/init.d/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller_service.sh?ver=1.0.7
     chmod 0755 $Base_Dir/cckiller
     
     chmod 0755 /etc/init.d/cckiller
