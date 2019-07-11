@@ -1,15 +1,15 @@
 #!/bin/sh
 ###################################################################
-#  CCKiller version 1.0.7 Author: Jager <im@zhang.ge>          #
+#  CCKiller version 1.0.8 Author: Jager <im@zhang.ge>             #
 #  For more information please visit https://zhang.ge/5066.html#
 #-----------------------------------------------------------------#
-#  Copyright ©2015-2017 zhang.ge. All rights reserved.              #
+#  Copyright ©2015-2019 zhang.ge. All rights reserved.      #
 ###################################################################
 
 header()
 {
-        echo "CCKiller version 1.0.7 Author: Jager <im@zhang.ge>"
-        echo "Copyright ©2015-2017 zhangge.net. All rights reserved. "
+        echo "CCKiller version 1.0.8 Author: Jager <ge@zhang.ge>"
+        echo "Copyright ©2015-2019 zhang.ge. All rights reserved. "
 }
 
 load_conf()
@@ -123,6 +123,60 @@ else
 fi
 }
 
+# Copyright by DDoS-Defender version 2.1.0 
+core_netstat() {
+ cat /proc/net/tcp6 /proc/net/tcp 2>/dev/null > /dev/shm/core_netstat
+   awk '{print $2,$3,$4}' /dev/shm/core_netstat | awk '   
+       BEGIN {
+         #分割符    
+           FS = "[ ]*|:" ;}
+           
+         #开始统计IP数     
+         ( $0 !~ /local_address/ ){
+         
+         #统计ipv4     
+         if (length($1) == 8)      
+          { 
+            local_ip_col4 = strtonum("0x"substr($1,1,2)) ;     
+            local_ip_col3 = strtonum("0x"substr($1,3,2)) ;     
+            local_ip_col2 = strtonum("0x"substr($1,5,2)) ;     
+            local_ip_col1 = strtonum("0x"substr($1,7,2)) ;        
+            rem_ip_col4 =  strtonum("0x"substr($3,1,2)) ;     
+            rem_ip_col3 =  strtonum("0x"substr($3,3,2)) ;     
+            rem_ip_col2 =  strtonum("0x"substr($3,5,2)) ;     
+            rem_ip_col1 =  strtonum("0x"substr($3,7,2)) ;     
+          }     
+        else        
+        #统计ipv6
+         { 
+           local_ip_col4 = strtonum("0x"substr($1,1,2)) ;     
+           local_ip_col3 = strtonum("0x"substr($1,3,2)) ;     
+           local_ip_col2 = strtonum("0x"substr($1,5,2)) ;     
+           local_ip_col1 = strtonum("0x"substr($1,7,2)) ;        
+           rem_ip_col4 =  strtonum("0x"substr($3,25,2)) ;     
+           rem_ip_col3 =  strtonum("0x"substr($3,27,2)) ;     
+           rem_ip_col2 =  strtonum("0x"substr($3,29,2)) ;     
+           rem_ip_col1 =  strtonum("0x"substr($3,31,2)) ;     
+         }      
+           local_port = strtonum("0x"$2) ;   
+           #rem_port = strtonum("0x"$4) ;
+           
+        #分析连接状态     
+        if ( $5 ~ /06/ ) tcp_stat = "TIME_WAIT"    
+        else if ( $5 ~ /02/ ) tcp_stat = "SYN_SENT"    
+        else if ( $5 ~ /03/ ) tcp_stat = "SYN_RECV"    
+        else if ( $5 ~ /04/ ) tcp_stat = "FIN_WAIT1"    
+        else if ( $5 ~ /05/ ) tcp_stat = "FIN_WAIT2"    
+        else if ( $5 ~ /01/ ) tcp_stat = "ESTABLISHED" ;     
+        else if ( $5 ~ /07/ ) tcp_stat = "CLOSE"    
+        else if ( $5 ~ /08/ ) tcp_stat = "CLOSE_WAIT"    
+        else if ( $5 ~ /09/ ) tcp_stat = "LAST_ACK"    
+        else if ( $5 ~ /0A/ ) tcp_stat = "LISTEN"    
+        else if ( $5 ~ /0B/ ) tcp_stat = "CLOSING"    
+        else if ( $5 ~ /0C/ ) tcp_stat = "MAX_STATES"      
+        printf("%d.%d.%d.%d [%d] %d.%d.%d.%d %s\n",local_ip_col1,local_ip_col2,local_ip_col3,local_ip_col4,local_port,rem_ip_col1,rem_ip_col2,rem_ip_col3,rem_ip_col4,tcp_stat);}'
+}
+
 check_ip()
 {
     
@@ -146,18 +200,15 @@ check_ip()
 
 show_stats()
 {
-	if [[ ! -z $1 ]] && [[ ! -z $2 ]]
-	then
-		netstat -ntu | \
-        egrep -v "${IGNORE_PORT}LISTEN|127.0.0.1" | \
-        awk -F"[ ]+|[:]" '{print $6}' | \
-        sed -n '/[0-9]/p' | sort | uniq -c | sort -rn | head -$2
-	else
-		netstat -ntu | \
-        egrep -v "${IGNORE_PORT}LISTEN|127.0.0.1" | \
-        awk -F"[ ]+|[:]" '{print $6}' | \
-        sed -n '/[0-9]/p' | sort | uniq -c | sort -rn
-	fi
+    if [[ ! -z $1 ]] && [[ ! -z $2 ]]
+    then
+        core_netstat | awk '{print $1,$2,$3}' | \
+        egrep -v "\[${IGNORE_PORT}\]|127.0.0.1|0.0.0.0"|sort|uniq -c
+    else
+        core_netstat | \
+        egrep -v "\[${IGNORE_PORT}\]|127.0.0.1|0.0.0.0"|sort|uniq -c|sort -rn|\
+        awk '{printf("%d %s\n",$1,$4)}'
+    fi
 }
 
 cc_check()
@@ -191,7 +242,6 @@ cc_check()
 		fi
 		write_log INFO "Banned $CURR_LINE_IP with $CURR_LINE_CONN connections" >> $BANNED_IP_MAIL
 		echo $CURR_LINE_IP >> $BANNED_IP_LIST
-		#echo $CURR_LINE_IP >> $IGNORE_IP_LIST
 
 	done < $BAD_IP_LIST
 	if [[ $IP_BAN_NOW -ge 1 ]]; then

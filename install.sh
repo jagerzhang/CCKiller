@@ -1,22 +1,21 @@
 #!/bin/sh
 ###################################################################
-#  CCKiller version 1.0.7 Author: Jager <im@zhang.ge>          #
+#  CCKiller version 1.0.8 Author: Jager <ge@zhang.ge>          #
 #  For more information please visit https://zhang.ge/5066.html#
 #-----------------------------------------------------------------#
-#  Copyright ©2015-2017 zhangge.net. All rights reserved.              #
+#  Copyright ©2015-2019 zhang.ge. All rights reserved.              #
 ###################################################################
 conf_env()
 {
     export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
     export DKName=CCKiller
     export Base_Dir=/usr/local/cckiller
-    export DKVer=1.0.7
+    export DKVer=1.0.8
     clear
 }
 
 check_env()
 {
-    #wget -V || yum install -y wget
     which sendmail || yum install -y sendmail
     mailx -V || yum install -y mailx
     test -x $0 || chmod +x $0
@@ -36,10 +35,10 @@ header()
 {
 printf "
 ###################################################################
-#  $DKName version $DKVer Author: Jager <im@zhang.ge>               #
+#  $DKName version $DKVer Author: Jager <ge@zhang.ge>               #
 #  For more information please visit https://zhang.ge/5066.html#
 #-----------------------------------------------------------------#
-#  Copyright @2015-2016 zhang.ge. All rights reserved.              #
+#  Copyright @2015-2019 zhang.ge. All rights reserved.              #
 ###################################################################
 
 "
@@ -73,7 +72,7 @@ get_char()
 
 Check_U()
 {
-    userid=$(id | awk -F "[=|(]" '{print $2}')
+    userid=$(id | awk '{print $1}' | sed -e 's/=/ /' -e 's/(/ /' -e 's/)/ /'|awk '{print $2}')
     if [[ $userid -ne 0 ]]
     then
         echo "No root permissions,Please run with root user..."
@@ -84,7 +83,7 @@ Check_U()
 Update()
 {
     conf_env
-    curl -ko $Base_Dir/log/version.txt https://zhang.ge/wp-content/uploads/files/cckiller/version.txt
+    curl -ko $Base_Dir/log/version.txt --connect-timeout 300 --retry 5 --retry-delay 3 https://zhang.ge/wp-content/uploads/files/cckiller/version.txt
     CONF_FILE=$(awk -F":" '/configure/ {print $2}' $Base_Dir/log/version.txt)
     
     FINAL_VER=$(awk -F":" '/version/ {print $2}' $Base_Dir/log/version.txt)
@@ -265,14 +264,14 @@ install()
     fi
     source $Base_Dir/ck.conf
     clear
-    echo; echo "Installing $DKName version ${FINAL_VER:-$DKVer} by zhangge.net"; echo
-    echo; echo -n 'Downloading source files...'
+    echo; echo "Installing $DKName version ${FINAL_VER:-$DKVer} by zhang.ge"; echo
+    echo; echo "Checking the operating environment..."
     check_env >/dev/null 2>&1
-    echo -n '.'
-    curl -ko $Base_Dir/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller.sh?ver=1.0.7
+    echo; echo "Downloading source files..."
+    curl -ko $Base_Dir/cckiller --connect-timeout 300 --retry 5 --retry-delay 3 https://zhang.ge/wp-content/uploads/files/cckiller/cckiller.sh?ver=${FINAL_VER:-$DKVer}
     
     test -d /etc/init.d || mkdir -p /etc/init.d
-    curl -ko /etc/init.d/cckiller https://zhang.ge/wp-content/uploads/files/cckiller/cckiller_service.sh?ver=1.0.7
+    curl -ko /etc/init.d/cckiller --connect-timeout 300 --retry 5 --retry-delay 3 https://zhang.ge/wp-content/uploads/files/cckiller/cckiller_service.sh?ver${FINAL_VER:-$DKVer}
     chmod 0755 $Base_Dir/cckiller
     
     chmod 0755 /etc/init.d/cckiller
@@ -280,14 +279,12 @@ install()
     chkconfig cckiller on 2>/dev/null || \
     
     test -f /etc/rc.d/rc.local && \
-    
     echo "/etc/init.d/cckiller start" >>/etc/rc.d/rc.local
         
     ln -sf $Base_Dir/cckiller /bin/cckiller
     
     cp -f $0 $Base_Dir/ >/dev/null 2>&1
     
-    #ifconfig |awk -F '[ :]+' '/inet addr/{print $4}' > /usr/local/cckiller/ignore.ip.list
     if [[ -z $1 ]]
     then
         ip addr | awk -F '[ /]+' '/inet / {print $3}' | grep -v '127.0.' > $Base_Dir/ignore.ip.list
