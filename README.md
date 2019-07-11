@@ -4,7 +4,7 @@ Linux attack defense scripts tool --- Linux CC攻击防御工具脚本
 1. 请执行如下命令在线安装：
 
 ```
-curl -ko install.sh https://zhang.ge/wp-content/uploads/files/cckiller/install.sh?ver=1.0.7 && sh install.sh -i
+curl -ko install.sh https://zhang.ge/wp-content/uploads/files/cckiller/install.sh?ver=1.0.8 && sh install.sh -i
 ```
 
 2015-09-23 Ver 1.0.1：
@@ -49,3 +49,8 @@ BUG修复
 
 根据网友建议，新增日志控制开关，参数为LOG_LEVEL，支持 INFO、DEBUG和OFF 3个参数，其中INFO表示仅记录拉黑和释放IP，DEBUG记录全部日志，包括拉黑、释放的报错信息，OFF表示关闭日志。
 如果需要使用该功能，可以执行 ./install.sh -u 在线更新或直接重新安装。
+
+2019-07-11 Ver 1.0.8
+支持IPv6检查;
+优化在线安装脚本，减少下载失败几率；
+基于/proc/net检查，替换netstat，避免在高并发时netstat导致CPU高负载的问题，感谢Late Winter指出，检查代码来自DDoS-Defender-v2.1.0。
