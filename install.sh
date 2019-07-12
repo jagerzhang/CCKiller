@@ -22,7 +22,7 @@ check_env()
     #Centos 7 install iptables
     if [ -n "`grep 'Aliyun Linux release' /etc/issue`" -o -e /etc/redhat-release ];then
         which iptables >/dev/null
-        if [ -n "`grep ' 7\.' /etc/redhat-release`" -a $? -eq 0 ] ; then
+        if [ -n "`grep ' 7\.' /etc/redhat-release`" -a $? -ne 0 ] ; then
             yum -y install iptables-services
             systemctl mask firewalld.service
             systemctl enable iptables.service
@@ -268,10 +268,10 @@ install()
     echo; echo "Checking the operating environment..."
     check_env >/dev/null 2>&1
     echo; echo "Downloading source files..."
-    curl -ko $Base_Dir/cckiller --connect-timeout 300 --retry 5 --retry-delay 3 https://zhang.ge/wp-content/uploads/files/cckiller/cckiller.sh?ver=${FINAL_VER:-$DKVer}
+    curl -ko $Base_Dir/cckiller --connect-timeout 300 --retry 5 --retry-delay 3 https://zhang.ge/wp-content/uploads/files/cckiller/cckiller?ver=${FINAL_VER:-$DKVer}
     
     test -d /etc/init.d || mkdir -p /etc/init.d
-    curl -ko /etc/init.d/cckiller --connect-timeout 300 --retry 5 --retry-delay 3 https://zhang.ge/wp-content/uploads/files/cckiller/cckiller_service.sh?ver${FINAL_VER:-$DKVer}
+    curl -ko /etc/init.d/cckiller --connect-timeout 300 --retry 5 --retry-delay 3 https://zhang.ge/wp-content/uploads/files/cckiller/cckiller_servicefile?ver${FINAL_VER:-$DKVer}
     chmod 0755 $Base_Dir/cckiller
     
     chmod 0755 /etc/init.d/cckiller
