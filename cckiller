@@ -8,7 +8,7 @@
 
 header()
 {
-        echo "CCKiller version 1.0.8 Author: Jager <ge@zhang.ge>"
+        echo "CCKiller version 1.0.8 Author: Jager <im@zhang.ge>"
         echo "Copyright ©2015-2019 zhang.ge. All rights reserved. "
 }
 
